@@ -1,0 +1,365 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>waiservability</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: system-ui, -apple-system, sans-serif; background: #fff; color: #000; min-height: 100vh; display: flex; flex-direction: column; }
+    header { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 12px 16px; border-bottom: 1px solid #000; }
+    .header-left { display: flex; align-items: center; gap: 14px; }
+    .header-actions { display: flex; gap: 8px; align-items: center; }
+    main { flex: 1; width: 100%; max-width: 1080px; margin: 0 auto; }
+    .tabs { display: flex; border-bottom: 1px solid #000; }
+    .tab-btn { border: none; border-bottom: 2px solid transparent; background: none; padding: 12px 18px; font: inherit; color: inherit; cursor: pointer; }
+    .tab-btn.active { border-bottom-color: #000; }
+    .content { padding: 24px; display: flex; flex-direction: column; gap: 24px; }
+    .panel { border: 1px solid #000; }
+    .panel h2, .panel h3 { font-size: 1rem; font-weight: 500; padding: 16px 20px 0 20px; }
+    .panel-body { padding: 16px 20px 20px 20px; }
+    .stats-grid { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 8px; }
+    .stat-card { border: 1px solid #000; padding: 12px; }
+    .stat-label { font-size: 0.75rem; opacity: 0.7; margin-bottom: 4px; }
+    .stat-value { font-size: 1rem; }
+    .split { display: grid; grid-template-columns: 1.3fr 1fr; gap: 24px; }
+    .triple { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 24px; }
+    table { width: 100%; border-collapse: collapse; table-layout: fixed; }
+    th, td { text-align: left; padding: 8px 0; border-bottom: 1px solid #000; vertical-align: top; font-size: 0.9rem; }
+    th { font-size: 0.75rem; font-weight: 500; opacity: 0.7; }
+    .scroll { display: block; white-space: nowrap; overflow-x: auto; overflow-y: hidden; scrollbar-width: none; }
+    .scroll::-webkit-scrollbar { display: none; }
+    .pill { display: inline-block; border: 1px solid #000; padding: 2px 6px; font-size: 0.7rem; }
+    .muted { opacity: 0.7; }
+    .stack { flex-direction: column; gap: 12px; }
+    .tab-panel { display: none; }
+    .tab-panel.active { display: block; }
+    .tab-panel.stack.active { display: flex; }
+    .namespace-list { display: flex; flex-direction: column; gap: 12px; }
+    .namespace-item { border: 1px solid #000; }
+    .namespace-toggle { width: 100%; border: none; background: none; padding: 16px 20px; display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; text-align: left; font: inherit; color: inherit; cursor: pointer; }
+    .namespace-summary { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+    .namespace-meta { font-size: 0.85rem; opacity: 0.7; }
+    .namespace-detail { display: none; border-top: 1px solid #000; }
+    .namespace-detail.open { display: block; }
+    .action-row { display: flex; gap: 8px; flex-wrap: wrap; }
+    .usage { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+    .usage-top { display: flex; justify-content: space-between; gap: 8px; font-size: 0.8rem; }
+    .usage-top .raw { opacity: 0.7; }
+    .bar { height: 6px; border: 1px solid #000; position: relative; overflow: hidden; }
+    .bar-fill { position: absolute; left: 0; top: 0; bottom: 0; background: #000; }
+    .namespace-usage { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; margin-top: 6px; }
+    .pods-table { table-layout: fixed; }
+    .pods-table th, .pods-table td { padding: 10px 8px; vertical-align: middle; }
+    .pods-table th:nth-child(1), .pods-table td:nth-child(1) { width: 28%; }
+    .pods-table th:nth-child(2), .pods-table td:nth-child(2) { width: 8%; }
+    .pods-table th:nth-child(3), .pods-table td:nth-child(3) { width: 21%; }
+    .pods-table th:nth-child(4), .pods-table td:nth-child(4) { width: 21%; }
+    .pods-table th:nth-child(5), .pods-table td:nth-child(5) { width: 7%; text-align: right; }
+    .pods-table th:nth-child(6), .pods-table td:nth-child(6) { width: 8%; }
+    .pods-table th:nth-child(7), .pods-table td:nth-child(7) { width: 7%; text-align: right; }
+    .pod-name { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .cell-stack { display: flex; flex-direction: column; gap: 2px; }
+    .cell-stack .raw { font-size: 0.75rem; opacity: 0.7; }
+    body.dark .bar { border-color: #fff; }
+    body.dark .bar-fill { background: #fff; }
+    .modal { position: fixed; inset: 0; background: rgba(0,0,0,0.25); display: flex; align-items: center; justify-content: center; z-index: 20; }
+    .modal.hidden { display: none; }
+    .modal-box { background: #fff; border: 1px solid #000; width: min(900px, 92vw); max-height: 85vh; display: flex; flex-direction: column; }
+    .modal-close-btn { border: 1px solid #000; background: #fff; color: inherit; padding: 8px 12px; font: inherit; cursor: pointer; }
+    .modal-header { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 16px 20px; border-bottom: 1px solid #000; }
+    .modal-header h3 { padding: 0; }
+    .modal-body { padding: 16px 20px 20px 20px; display: flex; flex-direction: column; gap: 12px; min-height: 0; }
+    .log-viewer { border: 1px solid #000; padding: 12px; min-height: 320px; max-height: 55vh; overflow: auto; white-space: pre-wrap; font: 0.8rem/1.4 ui-monospace, SFMono-Regular, Menlo, monospace; }
+    .line-list { list-style: none; display: flex; flex-direction: column; gap: 10px; }
+    .line-list li { border-bottom: 1px solid #000; padding-bottom: 10px; }
+    .line-list li:last-child { border-bottom: none; padding-bottom: 0; }
+    .line-top { display: flex; justify-content: space-between; gap: 12px; margin-bottom: 4px; }
+    .scroll-list { max-height: 320px; overflow-y: auto; padding-right: 8px; }
+    .scroll-list-tall { max-height: 70vh; overflow-y: auto; padding-right: 8px; }
+    body.dark { background: #000; color: #fff; }
+    body.dark header, body.dark .tabs, body.dark .panel, body.dark .stat-card, body.dark th, body.dark td, body.dark .line-list li, body.dark .pill, body.dark .modal-close-btn { border-color: #fff; }
+    body.dark .modal-close-btn { background: #000; color: #fff; }
+    body.dark .tab-btn { color: #fff; }
+    body.dark .tab-btn.active { border-bottom-color: #fff; }
+    body.dark .namespace-item, body.dark .namespace-detail, body.dark .modal-box, body.dark .log-viewer { border-color: #fff; }
+    body.dark .modal-box, body.dark .log-viewer { background: #000; color: #fff; }
+    @media (max-width: 860px) {
+      .stats-grid, .split, .triple { grid-template-columns: 1fr; }
+      .tabs { overflow-x: auto; }
+    }
+  </style>
+</head>
+<body class="{{ if eq .Mode "dark" }}dark{{ end }}">
+  <header>
+    <div class="header-left">
+      <span class="app-name">waiservability</span>
+    </div>
+    <div class="header-actions">
+      <button type="button" onclick="toggleMode()">mode</button>
+    </div>
+  </header>
+
+  <main>
+    <nav class="tabs">
+      <button class="tab-btn active" type="button" onclick="showTab('overview', this)">overview</button>
+      <button class="tab-btn" type="button" onclick="showTab('nodes', this)">nodes</button>
+      <button class="tab-btn" type="button" onclick="showTab('containers', this)">containers</button>
+      <button class="tab-btn" type="button" onclick="showTab('events', this)">events</button>
+    </nav>
+
+    <div class="content">
+      <section id="overview-tab" class="tab-panel active stack">
+        <div class="stats-grid" style="grid-template-columns: repeat(4, minmax(0, 1fr));">
+          <div class="stat-card"><div class="stat-label">nodes</div><div class="stat-value">{{ .Overview.NodeCount }}</div></div>
+          <div class="stat-card"><div class="stat-label">namespaces</div><div class="stat-value">{{ .Overview.NamespaceCount }}</div></div>
+          <div class="stat-card"><div class="stat-label">containers</div><div class="stat-value">{{ .Overview.ContainerCount }}</div></div>
+          <div class="stat-card"><div class="stat-label">events</div><div class="stat-value">{{ .Overview.EventCount }}</div></div>
+        </div>
+
+        <div class="panel">
+          <h2>cluster load</h2>
+          <div class="panel-body">
+            <div class="stats-grid" style="grid-template-columns: repeat(4, minmax(0, 1fr));">
+              <div class="stat-card"><div class="stat-label">node cpu total</div><div class="stat-value">{{ formatPercent .Overview.TotalNodeCPU }}</div></div>
+              <div class="stat-card"><div class="stat-label">node memory used</div><div class="stat-value">{{ formatGB .Overview.TotalNodeMemoryGB }}</div></div>
+              <div class="stat-card"><div class="stat-label">container cpu total</div><div class="stat-value">{{ formatPercent .Overview.TotalContainerCPU }}</div></div>
+              <div class="stat-card"><div class="stat-label">container memory used</div><div class="stat-value">{{ formatGB .Overview.TotalContainerMemGB }}</div></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="panel">
+          <h2>alerts</h2>
+          <div class="panel-body">
+            <ul class="line-list scroll-list">
+              {{ range .Alerts }}
+              <li>
+                <div class="line-top"><strong>{{ .Name }}</strong><span class="pill">{{ .Status }}</span></div>
+                <div>{{ .Scope }}</div>
+                <div class="muted">{{ .Reason }} · {{ .Since }}</div>
+              </li>
+              {{ else }}
+              <li class="muted">no alerts</li>
+              {{ end }}
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <section id="events-tab" class="tab-panel">
+        <div class="panel">
+          <h2>events</h2>
+          <div class="panel-body">
+            <ul class="line-list scroll-list-tall">
+              {{ range .Events }}
+              <li>
+                <div class="line-top"><strong>{{ .Time }}</strong><span class="pill">{{ .Kind }}</span></div>
+                <div>{{ .Scope }}</div>
+                <div class="muted">{{ .Message }}</div>
+              </li>
+              {{ else }}
+              <li class="muted">no events</li>
+              {{ end }}
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <section id="nodes-tab" class="tab-panel">
+        <div class="panel">
+          <h2>nodes</h2>
+          <div class="panel-body">
+            <table>
+              <thead>
+                <tr>
+                  <th>name</th>
+                  <th>status</th>
+                  <th>cpu</th>
+                  <th>memory</th>
+                  <th>uptime</th>
+                  <th>pods</th>
+                  <th>pressure</th>
+                </tr>
+              </thead>
+              <tbody>
+                {{ range .Nodes }}
+                <tr>
+                  <td><span class="scroll">{{ .Name }}</span><div class="muted">{{ .Zone }} · {{ .Runtime }} · {{ .Kernel }}</div></td>
+                  <td>{{ .Status }}</td>
+                  <td>{{ formatPercent .CPUPercent }}</td>
+                  <td>{{ formatGB .MemoryUsedGB }} / {{ formatGB .MemoryGB }}</td>
+                  <td>{{ .Uptime }}</td>
+                  <td>{{ .Pods }}</td>
+                  <td>{{ .Pressure }}</td>
+                </tr>
+                {{ end }}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <section id="containers-tab" class="tab-panel stack">
+        <div class="panel">
+          <h2>namespaces</h2>
+          <div class="panel-body">
+            <div class="namespace-list">
+              {{ range $ns := .Namespaces }}
+              <div class="namespace-item">
+                <button class="namespace-toggle" type="button" onclick="toggleNamespace('{{ $ns.Name }}')">
+                  <div class="namespace-summary">
+                    <strong>{{ $ns.Name }}</strong>
+                    <div class="namespace-meta">{{ $ns.Containers }} containers · {{ $ns.Services }} services · {{ $ns.Restarts24h }} restarts · {{ $ns.Warnings }} warnings</div>
+                    <div class="namespace-usage">
+                      <div class="usage">
+                        <div class="usage-top"><span>cpu</span><span class="raw">{{ formatCPU $ns.CPUCores }} used · {{ formatPercent $ns.CPUAllocPercent }}</span></div>
+                        <div class="bar"><div class="bar-fill" style="width: {{ $ns.CPUAllocPercent }}%"></div></div>
+                      </div>
+                      <div class="usage">
+                        <div class="usage-top"><span>memory</span><span class="raw">{{ formatGB $ns.MemoryUsedGB }} used · {{ formatPercent $ns.MemoryAllocPercent }}</span></div>
+                        <div class="bar"><div class="bar-fill" style="width: {{ $ns.MemoryAllocPercent }}%"></div></div>
+                      </div>
+                    </div>
+                  </div>
+                </button>
+                  <div id="namespace-{{ $ns.Name }}" class="namespace-detail">
+                  <div class="panel-body">
+                    <table class="pods-table">
+                      <thead>
+                        <tr>
+                          <th>pod</th>
+                          <th>status</th>
+                          <th>cpu</th>
+                          <th>memory</th>
+                          <th>restarts</th>
+                          <th>uptime</th>
+                          <th>logs</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {{ range $.Containers }}
+                          {{ if eq .Namespace $ns.Name }}
+                          <tr>
+                            <td>
+                              <div class="cell-stack">
+                                <span class="pod-name">{{ .PodName }}</span>
+                                <span class="raw">{{ .Node }}</span>
+                              </div>
+                            </td>
+                            <td>{{ .Status }}</td>
+                            <td>
+                              <div class="cell-stack">
+                                {{ if gt .CPUAllocatedCores 0.0 }}
+                                  <span>{{ formatPercent .CPUAllocPercent }}</span>
+                                  <span class="raw">{{ formatCPU .CPUCores }} / {{ formatCPU .CPUAllocatedCores }}</span>
+                                {{ else }}
+                                  <span>{{ formatCPU .CPUCores }}</span>
+                                  <span class="raw">no request</span>
+                                {{ end }}
+                              </div>
+                            </td>
+                            <td>
+                              <div class="cell-stack">
+                                {{ if gt .MemoryAllocatedMB 0 }}
+                                  <span>{{ formatPercent .MemoryAllocPercent }}</span>
+                                  <span class="raw">{{ formatMB .MemoryMB }} / {{ formatMB .MemoryAllocatedMB }}</span>
+                                {{ else }}
+                                  <span>{{ formatMB .MemoryMB }}</span>
+                                  <span class="raw">no request</span>
+                                {{ end }}
+                              </div>
+                            </td>
+                            <td>{{ .Restarts24h }}</td>
+                            <td>{{ .Age }}</td>
+                            <td><button type="button" onclick="openLogs('{{ .Namespace }}', '{{ .PodName }}', '{{ .ContainerName }}')">logs</button></td>
+                          </tr>
+                          {{ end }}
+                        {{ end }}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+              {{ end }}
+            </div>
+          </div>
+        </div>
+      </section>
+
+    </div>
+  </main>
+
+  <div id="logs-modal" class="modal hidden" onclick="closeLogsFromBackdrop(event)">
+    <div class="modal-box">
+      <div class="modal-header">
+        <h3 id="logs-title">logs</h3>
+        <button class="modal-close-btn" type="button" onclick="closeLogsModal()">close</button>
+      </div>
+      <div class="modal-body">
+        <div class="muted">streaming live</div>
+        <pre id="logs-output" class="log-viewer"></pre>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let logStream = null;
+
+    function showTab(name, btn) {
+      document.querySelectorAll('.tab-panel').forEach(panel => panel.classList.remove('active'));
+      document.querySelectorAll('.tab-btn').forEach(tab => tab.classList.remove('active'));
+      document.getElementById(name + '-tab').classList.add('active');
+      btn.classList.add('active');
+    }
+
+    function toggleNamespace(name) {
+      const section = document.getElementById('namespace-' + name);
+      section.classList.toggle('open');
+    }
+
+    function openLogs(namespace, pod, container) {
+      document.getElementById('logs-title').textContent = namespace + ' / ' + pod + ' / ' + container;
+      const output = document.getElementById('logs-output');
+      output.textContent = '';
+      document.getElementById('logs-modal').classList.remove('hidden');
+
+      if (logStream) logStream.close();
+      const params = new URLSearchParams({ namespace, pod, container });
+      logStream = new EventSource('/api/logs/stream?' + params.toString());
+
+      logStream.onmessage = (event) => {
+        const atBottom = output.scrollHeight - output.scrollTop - output.clientHeight < 40;
+        output.textContent += event.data + '\n';
+        if (atBottom) output.scrollTop = output.scrollHeight;
+      };
+
+      logStream.onerror = () => {
+        if (output.textContent === '') output.textContent = 'log stream ended';
+      };
+    }
+
+    function closeLogsModal() {
+      document.getElementById('logs-modal').classList.add('hidden');
+      if (logStream) {
+        logStream.close();
+        logStream = null;
+      }
+    }
+
+    function closeLogsFromBackdrop(event) {
+      if (event.target.id === 'logs-modal') closeLogsModal();
+    }
+
+    function toggleMode() {
+      const dark = document.body.classList.toggle('dark');
+      localStorage.setItem('waiservability-mode', dark ? 'dark' : 'light');
+    }
+
+    (function loadMode() {
+      const mode = localStorage.getItem('waiservability-mode');
+      if (mode === 'dark') document.body.classList.add('dark');
+    })();
+  </script>
+</body>
+</html>
