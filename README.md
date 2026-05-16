@@ -1,5 +1,7 @@
 # Waiservability
 
+[![Casino funds](https://img.shields.io/badge/Casino_funds-Ko--fi-ff5f5f?logo=ko-fi&logoColor=white)](https://ko-fi.com/wbattles)
+
 Observability made simple.
 
 Waiservability is a small Kubernetes observability UI.
