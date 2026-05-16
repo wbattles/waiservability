@@ -46,8 +46,6 @@
     .usage { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
     .usage-top { display: flex; justify-content: space-between; gap: 8px; font-size: 0.8rem; }
     .usage-top .raw { opacity: 0.7; }
-    .bar { height: 6px; border: 1px solid #000; position: relative; overflow: hidden; }
-    .bar-fill { position: absolute; left: 0; top: 0; bottom: 0; background: #000; }
     .namespace-usage { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; margin-top: 6px; }
     .pods-table { table-layout: fixed; }
     .pods-table th, .pods-table td { padding: 10px 8px; vertical-align: middle; }
@@ -61,8 +59,6 @@
     .pod-name { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .cell-stack { display: flex; flex-direction: column; gap: 2px; }
     .cell-stack .raw { font-size: 0.75rem; opacity: 0.7; }
-    body.dark .bar { border-color: #fff; }
-    body.dark .bar-fill { background: #fff; }
     .modal { position: fixed; inset: 0; background: rgba(0,0,0,0.25); display: flex; align-items: center; justify-content: center; z-index: 20; }
     .modal.hidden { display: none; }
     .modal-box { background: #fff; border: 1px solid #000; width: min(900px, 92vw); max-height: 85vh; display: flex; flex-direction: column; }
@@ -214,11 +210,9 @@
                     <div class="namespace-usage">
                       <div class="usage">
                         <div class="usage-top"><span>cpu</span><span class="raw">{{ formatCPU $ns.CPUCores }} used · {{ formatPercent $ns.CPUAllocPercent }}</span></div>
-                        <div class="bar"><div class="bar-fill" style="width: {{ $ns.CPUAllocPercent }}%"></div></div>
                       </div>
                       <div class="usage">
                         <div class="usage-top"><span>memory</span><span class="raw">{{ formatGB $ns.MemoryUsedGB }} used · {{ formatPercent $ns.MemoryAllocPercent }}</span></div>
-                        <div class="bar"><div class="bar-fill" style="width: {{ $ns.MemoryAllocPercent }}%"></div></div>
                       </div>
                     </div>
                   </div>
